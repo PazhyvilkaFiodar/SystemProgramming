@@ -3,24 +3,28 @@
 #include <stdio.h>
 #include <string.h>
 
-BOOL ListProcessModules(DWORD dwPID){
+BOOL ListProcessModules(DWORD dwPID, int* count_modules){
     HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
     MODULEENTRY32 me32;
     hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, dwPID);
-    if(hModuleSnap == INVALID_HANDLE_VALUE)
+    if(hModuleSnap == INVALID_HANDLE_VALUE) {
+        *count_modules = -1;
         return FALSE;
+    }
 
     me32.dwSize = sizeof(MODULEENTRY32);
 
     if(!Module32First(hModuleSnap, &me32))
     {
+        *count_modules = -1;
         CloseHandle(hModuleSnap);
         return FALSE;
     }
 
-
+    *count_modules = 0;
     do
     {
+        ++(*count_modules);
         printf("\n\n     MODULE NAME:     %s", me32.szModule);
         printf("\n     Executable     = %s", me32.szExePath);
         printf("\n     Base size      = %lu", me32.modBaseSize);
@@ -95,12 +99,14 @@ BOOL GetProcessList( )
         }
 
         printf("\n  Process ID        = 0x%08lX", pe32.th32ProcessID);
-        printf("\n  Thread count      = %lu",   pe32.cntThreads );
-        printf("\n  Parent process ID = 0x%08lX", pe32.th32ParentProcessID );
-        printf("\n  Base priority     = %lu", pe32.pcPriClassBase );
+        printf("\n  Thread count      = %lu",   pe32.cntThreads);
+        printf("\n  Parent process ID = 0x%08lX", pe32.th32ParentProcessID);
+        printf("\n  Base priority     = %lu", pe32.pcPriClassBase);
         if(dwPriorityClass)
             printf("\n  Priority class    = %lu", dwPriorityClass);
-        ListProcessModules(pe32.th32ProcessID);
+        int count_modules = 0;
+        ListProcessModules(pe32.th32ProcessID, &count_modules);
+        printf("\n\n  Module count      = %d", count_modules);
         ListProcessThreads(pe32.th32ProcessID);
 
     } while(Process32Next(hProcessSnap, &pe32));
